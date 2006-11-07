@@ -4,13 +4,10 @@
 ## Version: 1.0.$Revision: 426 $
 ## Author: Kynan (Eitrigg US)
 ## DefaultState: Enabled
-## LoadOnDemand: 1
-## RequiredDeps: SupplyAndDemand
 ## OptionalDeps: Ace2 CrayonLib
 ## SavedVariables: ClubDeadDB
 ## X-Category: Chat/Communication Addons
 ## X-Date: $Date: 2006-11-06 19:06:57 -0500 (Mon, 06 Nov 2006) $
-## X-S&D-InRaid: true
 
 Libs\AceLibrary\AceLibrary.lua
 Libs\AceOO-2.0\AceOO-2.0.lua
