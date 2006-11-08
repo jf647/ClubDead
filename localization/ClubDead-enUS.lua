@@ -11,6 +11,7 @@ L:RegisterTranslations("enUS", function() return {
     ["Set channel"] = true,
     ["Report status"] = true,
     ["Display a status report"] = true,
+    ["channel is not set - not activating"] = true,
     ["set it using:"] = true,
     ["/clubdead channel channelname"] = true,
     ["or enable auto-channel mode using:"] = true,

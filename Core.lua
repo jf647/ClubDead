@@ -91,10 +91,11 @@ ClubDead.consoleOptions = {
                 if( v ) then
                     if( IsInGuild() ) then
                         ClubDead.db.profile.autochannel = true
-                        ClubDead.db.profile.channel = string.sub(GetGuildInfo("player"), "%s") .. "Dead"
-                        self:TriggerEvent("ClubDead_CheckAlive")
+                        ClubDead:Debug("GetGuildInfo = " .. GetGuildInfo("player"))
+                        ClubDead.db.profile.channel = string.gsub(GetGuildInfo("player"), "%s", "") .. "Dead"
+                        ClubDead:TriggerEvent("ClubDead_CheckAlive")
                     else
-                        self:Print(C:Red(L["you are not in a guild, auto-channel cannot be used"]))
+                        ClubDead:Print(C:Red(L["you are not in a guild, auto-channel cannot be used"]))
                     end
                 else
                     ClubDead.db.profile.autochannel = false
@@ -113,12 +114,7 @@ ClubDead.consoleOptions = {
 }
 ClubDead:RegisterChatCommand(L["AceConsole-Commands"], ClubDead.consoleOptions )
 
-function ClubDead:OnInitialize()
-end
-
 function ClubDead:OnEnable()
-
-    self:SetDebugging(1)
 
     self:RegisterEvent("CHAT_MSG_SYSTEM")
     self:RegisterEvent("ClubDead_CheckChannel")
@@ -129,25 +125,8 @@ function ClubDead:OnEnable()
     self:RegisterEvent("ClubDead_RegisterEvents")
     self:RegisterEvent("ClubDead_UnRegisterEvents")
     self:RegisterEvent("ClubDead_SendMessage")
+    self:RegisterEvent("ClubDead_JoinChannel")
     self:RegisterEvent("ClubDead_LeaveChannel")
-
-    self.active = false
-    self.inraid = false
-    self.guildraid = false
-
-    if( ClubDead.db.profile.autochannel == nil ) then
-        if( IsInGuild() ) then
-            ClubDead.db.profile.autochannel = true
-        else
-            ClubDead.db.profile.autochannel = false
-        end
-    end
-    
-    if( ClubDead.db.profile.autochannel ) then
-        if( IsInGuild() ) then
-            ClubDead.db.profile.channel = string.sub(GetGuildInfo("player"), "%s") .. "Dead"
-        end
-    end
 
 	if AceLibrary("AceEvent-2.0"):IsFullyInitialized() then
 		self:AceEvent_FullyInitialized()
@@ -193,11 +172,45 @@ end
 
 function ClubDead:AceEvent_FullyInitialized()
 
+    self.active = false
+    self.inraid = false
+    self.guildraid = false
+
+    if self:GetProfile() == "Default" then
+        self:SetProfile("char")
+    end
+
     if( GetNumRaidMembers() > 0 ) then
 		self:TriggerEvent("ClubDead_JoinedRaid")
 	else
 		self:TriggerEvent("ClubDead_LeftRaid")
 	end
+
+end
+
+function ClubDead:OnProfileEnable()
+
+    self:SetDebugging(1)
+
+    if( ClubDead.db.profile.autochannel == nil ) then
+        self:Debug("channel is nil - setting up")
+        if( IsInGuild() ) then
+            self:Debug("is in guild - turning on autochannel")
+            ClubDead.db.profile.autochannel = true
+        else
+            self:Debug("is not in guild - turning off autochannel")
+            ClubDead.db.profile.autochannel = false
+        end
+    end
+    
+    if( ClubDead.db.profile.autochannel ) then
+        self:Debug("autochannel enabled")
+        if( IsInGuild() ) then
+            self:Debug("GetGuildInfo = " .. GetGuildInfo("player"))
+            ClubDead.db.profile.channel = string.gsub(GetGuildInfo("player"), "%s", "") .. "Dead"
+            self:Debug("set channel to " .. ClubDead.db.profile.channel)
+        end
+    end
 
 end
 
@@ -285,6 +298,10 @@ end
 
 function ClubDead:ClubDead_CheckChannel()
 
+    if( not ClubDead.db.profile.channel ) then
+        self:Debug("nochannel")
+        return
+    end
     local inchannel = GetChannelName(ClubDead.db.profile.channel) > 0
     
     if( inchannel ) then
@@ -292,11 +309,11 @@ function ClubDead:ClubDead_CheckChannel()
             if( self.isalive ) then
                 if( ClubDead.db.profile.wit ) then
                     self:Debug("emit witty remark about seeing a bright light to channel " .. ClubDead.db.profile.channel)
-                    self:TriggerEvent("ClubDead_SendMessage", "it is not yet my time...", ClubDead.db.profile.channel)
+                    self:ScheduleEvent("ClubDead_SendMessage", 5, "it is not yet my time...", ClubDead.db.profile.channel)
                 end
                 if( ClubDead.db.profile.autoleave ) then
                     self:Debug("inchannel,alive,autoleave - leaving")
-                    self:ScheduleEvent("ClubDead_LeaveChannel", 5, ClubDead.db.profile.channel)
+                    self:ScheduleEvent("ClubDead_LeaveChannel", 10, ClubDead.db.profile.channel)
                 else
                     self:Debug("inchannel,alive,noautoleave- not leaving")
                 end
@@ -314,13 +331,10 @@ function ClubDead:ClubDead_CheckChannel()
             if( not self.isalive ) then
                 if( ClubDead.db.profile.autojoin ) then
                     self:Debug("notinchannel,dead,autojoin - joining")
-                    JoinChannelByName(ClubDead.db.profile.channel)
-                    inchannel = GetChannelName(ClubDead.db.profile.channel) > 0
-                    if( not inchannel ) then
-                        self:Debug("cannot join channel")
-                    elseif( ClubDead.db.profile.wit ) then
+                    self:ScheduleEvent("ClubDead_JoinChannel", 5, ClubDead.db.profile.channel);
+                    if( ClubDead.db.profile.wit ) then
                         self:Debug("emit witty remark about a parrot to channel " .. ClubDead.db.profile.channel)
-                        self:ScheduleEvent("ClubDead_SendMessage", 5, "I'm not dead, I'm just questing in spirit form", ClubDead.db.profile.channel);
+                        self:ScheduleEvent("ClubDead_SendMessage", 10, "I'm not dead, I'm just questing in spirit form", ClubDead.db.profile.channel);
                     end
                 else
                     self:Debug("notinchannel,dead,noautojoin - not joining")
@@ -337,6 +351,12 @@ function ClubDead:ClubDead_SendMessage(msg, channel)
     if( channelid > 0 ) then
         SendChatMessage(msg, "CHANNEL", nil, channelid);
     end
+
+end
+
+function ClubDead:ClubDead_JoinChannel(channel)
+
+    JoinChannelByName(channel)
 
 end
 
