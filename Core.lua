@@ -4,6 +4,8 @@
 
 -- get global library instances
 local L  = AceLibrary("AceLocale-2.2"):new("ClubDead")
+local WITJOIN = AceLibrary("AceLocale-2.2"):new("ClubDead-WitJoin")
+local WITLEAVE = AceLibrary("AceLocale-2.2"):new("ClubDead-WitLeave")
 local C  = AceLibrary("Crayon-2.0")
 
 -- setup addon
@@ -19,7 +21,7 @@ ClubDead.defaults = {
     channel = nil,
     autojoin = true,
     autoleave = true,
-    witty = true,
+    wit = true,
     guildraidonly = true,
     autochannel = nil,
 }
@@ -36,6 +38,13 @@ ClubDead.consoleOptions = {
             desc = L["Display a status report"],
             func = function()
                 ClubDead:Report()
+            end,
+        },
+        ["check"] = {
+            name = "check", type = "execute",
+            desc = "check status",
+            func = function()
+                ClubDead:ClubDead_CheckAlive()
             end,
         },
         [L["channel"]] = {
@@ -74,14 +83,6 @@ ClubDead.consoleOptions = {
                 ClubDead.db.profile.wit = v
             end,
         },
-        [L["wit"]] = {
-            name = L["Wit"], type = "toggle",
-            desc = L["Emit witty rejoinders on channel join/leave"],
-            get = function() return ClubDead.db.profile.wit end,
-            set = function(v)
-                ClubDead.db.profile.wit = v
-            end,
-        },
         [L["autochannel"]] = {
             name = L["Auto-channel"], type = "toggle",
             desc = L["Set channel to your Guild Name suffixed by 'Dead'"],
@@ -90,10 +91,10 @@ ClubDead.consoleOptions = {
                 if( v ) then
                     if( IsInGuild() ) then
                         ClubDead.db.profile.autochannel = true
-                        ClubDead.db.profile.channel = GetGuildInfo("player") .. "Dead"
-                        self:TriggerEvent("ClubDead_CheckActive")
+                        ClubDead.db.profile.channel = string.sub(GetGuildInfo("player"), "%s") .. "Dead"
+                        self:TriggerEvent("ClubDead_CheckAlive")
                     else
-                        self:Print(C:Red(L["you are not in a guild, auto-channel cannot be used"))
+                        self:Print(C:Red(L["you are not in a guild, auto-channel cannot be used"]))
                     end
                 else
                     ClubDead.db.profile.autochannel = false
@@ -117,17 +118,22 @@ end
 
 function ClubDead:OnEnable()
 
+    self:SetDebugging(1)
+
     self:RegisterEvent("CHAT_MSG_SYSTEM")
     self:RegisterEvent("ClubDead_CheckChannel")
     self:RegisterEvent("ClubDead_CheckActive")
+    self:RegisterEvent("ClubDead_CheckAlive")
     self:RegisterEvent("ClubDead_JoinedRaid")
     self:RegisterEvent("ClubDead_LeftRaid")
+    self:RegisterEvent("ClubDead_RegisterEvents")
+    self:RegisterEvent("ClubDead_UnRegisterEvents")
+    self:RegisterEvent("ClubDead_SendMessage")
+    self:RegisterEvent("ClubDead_LeaveChannel")
 
     self.active = false
     self.inraid = false
     self.guildraid = false
-
-    self:SetAliveDead()
 
     if( ClubDead.db.profile.autochannel == nil ) then
         if( IsInGuild() ) then
@@ -139,7 +145,7 @@ function ClubDead:OnEnable()
     
     if( ClubDead.db.profile.autochannel ) then
         if( IsInGuild() ) then
-            ClubDead.db.profile.channel = GetGuildInfo("player") .. "Dead"
+            ClubDead.db.profile.channel = string.sub(GetGuildInfo("player"), "%s") .. "Dead"
         end
     end
 
@@ -153,9 +159,15 @@ end
 
 function ClubDead:ClubDead_RegisterEvents()
 
-    self:RegisterEvent("PLAYER_DEAD", "SetAliveGhost")
-    self:RegisterEvent("PLAYER_ALIVE", "SetAliveGhost")
-    self:RegisterEvent("PLAYER_UNGHOST", "SetAliveGhost")
+    if( not self:IsEventRegistered("PLAYER_DEAD") ) then
+        self:RegisterEvent("PLAYER_DEAD", "ClubDead_CheckAlive")
+    end
+    if( not self:IsEventRegistered("PLAYER_ALIVE") ) then
+        self:RegisterEvent("PLAYER_ALIVE", "ClubDead_CheckAlive")
+    end
+    if( not self:IsEventRegistered("PLAYER_UNGHOST") ) then
+        self:RegisterEvent("PLAYER_UNGHOST", "ClubDead_CheckAlive")
+    end
 
 end
 
@@ -192,17 +204,26 @@ end
 function ClubDead:CHAT_MSG_SYSTEM(msg)
 
     if( string.find(msg, "^"..ERR_RAID_YOU_LEFT) ) then
-		self:TriggerEvent("ClubDead_LeftRaid")
+        self:Debug("caught left raid from chat")
+        self:TriggerEvent("ClubDead_LeftRaid")
 	elseif( string.find(msg, ERR_RAID_YOU_JOINED) ) then
-		self:TriggerEvent("ClubDead_JoinedRaid")
+		self:Debug("caught joined raid from chat")
+        self:TriggerEvent("ClubDead_JoinedRaid")
 	end
 end
 
 function ClubDead:ClubDead_JoinedRaid()
 
     self.inraid = true
-    self.guildraid = GetGuildInfo("player") == GetGuildInfo(GetPartyMember(GetPartyleaderIndex()))
-    self:TriggerEvent("ClubDead_CheckActive")
+    self.guildraid = false
+    if( IsInGuild() ) then
+        if( IsPartyLeader() ) then
+            self.guildraid = true
+        elseif( GetGuildInfo("player") == GetGuildInfo(GetPartyMember(GetPartyleaderIndex())) ) then
+            self.guildraid = true
+        end
+    end
+    self:TriggerEvent("ClubDead_CheckAlive")
 
 end
 
@@ -210,79 +231,146 @@ function ClubDead:ClubDead_LeftRaid()
 
     self.inraid = false
     self.guildraid = false
+    self:TriggerEvent("ClubDead_CheckAlive")
+
+end
+
+function ClubDead:ClubDead_CheckAlive()
+
+    if( UnitIsDeadOrGhost("player") ) then
+        self:Debug("is dead")
+        self.isalive = false
+    else
+        self:Debug("is alive")
+        self.isalive = true
+    end
     self:TriggerEvent("ClubDead_CheckActive")
 
 end
 
 function ClubDead:ClubDead_CheckActive()
 
+    self.active = false
     if( not ClubDead.db.profile.channel ) then
         self:Print(C:Red(L["channel is not set - not activating"]))
         self:Print(C:Red(L["set it using:"]), " ", C:White(L["/clubdead channel channelname"]))
         self:Print(C:Red(L["or enable auto-channel mode using:"]), " ", C:White(L["/clubdead autochannel"]))
-        self:
-        return
+    else
+        if( self.inraid ) then
+            if( ClubDead.db.profile.guildraidonly ) then
+                if( not IsInGuild() ) then
+                    self:Print(C:Red(L["guildraidonly enabled and you are not guilded - not activating"]))
+                elseif( not self.guildraid ) then
+                    self:Print(C:Red(L["guildraidonly enabled and leader is not in your guild - not activating"]))
+                else
+                    self.active = true
+                end
+            else
+                self.active = true
+            end
+        else
+            self:Debug("self.inraid is false")
+        end
+    end
+
+    if( self.active ) then
+        self:TriggerEvent("ClubDead_RegisterEvents")
+    else
+        self:TriggerEvent("ClubDead_UnRegisterEvents")
     end
     
-    if( ClubDead.db.profile.guildraidonly ) then
-        if( not IsInGuild() ) then
-            self:Print(C:Red(L["guildraidonly enabled and you are not guilded - not activating"]))
-            return
-        end
-        if( not self.guildraid ) then
-            self:Print(C:Red(L["guildraidonly enabled and leader is not in your guild - not activating"]))
-            return
-        end
-    end
-
-    self:TriggerEvent("ClubDead_RegisterEvents")
-
-end
-
-function ClubDead:Report()
-
-    self:Debug("isalive " .. self.isalive)
-    self:Debug("isghost " .. self.isghost)
-    self:Debug("channel " .. ClubDead.db.profile.channel)
+    self:TriggerEvent("ClubDead_CheckChannel")
 
 end
 
 function ClubDead:ClubDead_CheckChannel()
 
-    --are we in the channel?
-    --yes
-        --are we alive?
-        --yes
-            --leave
-                --wit?
-                --yes
-                    --emit
-    --no
-        --are we dead?
-        --yes
-            --join
-                --wit?
-                --yes
-                    --emit
+    local inchannel = GetChannelName(ClubDead.db.profile.channel) > 0
+    
+    if( inchannel ) then
+        if( self.active ) then
+            if( self.isalive ) then
+                if( ClubDead.db.profile.wit ) then
+                    self:Debug("emit witty remark about seeing a bright light to channel " .. ClubDead.db.profile.channel)
+                    self:TriggerEvent("ClubDead_SendMessage", "it is not yet my time...", ClubDead.db.profile.channel)
+                end
+                if( ClubDead.db.profile.autoleave ) then
+                    self:Debug("inchannel,alive,autoleave - leaving")
+                    self:ScheduleEvent("ClubDead_LeaveChannel", 5, ClubDead.db.profile.channel)
+                else
+                    self:Debug("inchannel,alive,noautoleave- not leaving")
+                end
+            end
+        else
+            if( ClubDead.db.profile.autoleave ) then
+                self:Debug("inchannel,notactive,autoleave - leaving")
+                self:ScheduleEvent("ClubDead_LeaveChannel", 5, ClubDead.db.profile.channel)
+            else
+                self:Debug("inchannel,notactive,noautoleave - not leaving")
+            end
+        end
+    else
+        if( self.active ) then
+            if( not self.isalive ) then
+                if( ClubDead.db.profile.autojoin ) then
+                    self:Debug("notinchannel,dead,autojoin - joining")
+                    JoinChannelByName(ClubDead.db.profile.channel)
+                    inchannel = GetChannelName(ClubDead.db.profile.channel) > 0
+                    if( not inchannel ) then
+                        self:Debug("cannot join channel")
+                    elseif( ClubDead.db.profile.wit ) then
+                        self:Debug("emit witty remark about a parrot to channel " .. ClubDead.db.profile.channel)
+                        self:ScheduleEvent("ClubDead_SendMessage", 5, "I'm not dead, I'm just questing in spirit form", ClubDead.db.profile.channel);
+                    end
+                else
+                    self:Debug("notinchannel,dead,noautojoin - not joining")
+                end
+            end
+        end
+    end
 
 end
 
-function SetAliveGhost()
+function ClubDead:ClubDead_SendMessage(msg, channel)
 
-    local dead = UnitIsDead("player")
-    local deadorghost = UnitIsDeadOrGhost("player")
-    if( dead or deadorghost ) then
-        self.isalive = 0
-    else
-        self.isalive = 1
+    local channelid = GetChannelName(channel)
+    if( channelid > 0 ) then
+        SendChatMessage(msg, "CHANNEL", nil, channelid);
     end
-    if( deadorghost and not dead ) then
-        self.isghost = 1
+
+end
+
+function ClubDead:ClubDead_LeaveChannel(channel)
+
+    LeaveChannelByName(channel)
+
+end
+
+function ClubDead:Report()
+
+    local s
+    if( self.isalive ) then
+        s = "alive "
     else
-        self.isghost = 0
+        s = "notalive "
     end
-    self:Debug("isalive/isghost = %d/%d", self.isalive, self.isghost)
-    self:TriggerEvent("ClubDead_CheckChannel")
+    if( self.active ) then
+        s = s .. "active "
+    else
+        s = s .. "notactive "
+    end
+    if( self.inraid ) then
+        s = s .. "inraid "
+    else
+        s = s .. "notinraid "
+    end
+    if( self.guildraid ) then
+        s = s .. "guildraid "
+    else
+        s = s .. "notguildraid "
+    end
+    s = s .. "channel:" .. ClubDead.db.profile.channel
+    self:Debug(s)
 
 end
 
