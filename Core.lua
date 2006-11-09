@@ -1,5 +1,5 @@
 --
--- $Id: Core.lua 426 2006-11-07 00:06:57Z james $
+-- $Id$
 --
 
 -- get global library instances

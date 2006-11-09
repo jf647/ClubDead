@@ -1,13 +1,13 @@
 ## Interface: 11200
 ## Title: Club Dead |cff7fff7f -Ace2-|r
 ## Notes: Joins a configurable chat channel when you die
-## Version: 1.0.$Revision: 426 $
+## Version: 1.0.$Revision$
 ## Author: Kynan (Eitrigg US)
 ## DefaultState: Enabled
 ## OptionalDeps: Ace2 CrayonLib
 ## SavedVariables: ClubDeadDB
 ## X-Category: Chat/Communication Addons
-## X-Date: $Date: 2006-11-06 19:06:57 -0500 (Mon, 06 Nov 2006) $
+## X-Date: $Date$
 
 Libs\AceLibrary\AceLibrary.lua
 Libs\AceOO-2.0\AceOO-2.0.lua
@@ -24,6 +24,5 @@ Libs\Crayon-2.0\Crayon-2.0.lua
 localization\ClubDead-enUS.lua
 
 Core.lua
-
 
 ## EOF
