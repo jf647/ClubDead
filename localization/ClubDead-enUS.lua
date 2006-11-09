@@ -34,9 +34,24 @@ L:RegisterTranslations("enUS", function() return {
     ["you are not in a guild, auto-channel cannot be used"] = true,
     ["guildraidonly"] = true,
     ["Guild raids only"] = true,
-    ["Only enable when the raid leader is in your guild"] = true,
-    
-    
+    ["Addon takes no action unless the raid leader is in your guild"] = true,
+    ["chatframe"] = true,
+    ["Set chatframe name"] = true,
+    ["Set chatframe in which the channel will be made visible when it is joined"] = true,
+} end)
+
+local WITJOIN = AceLibrary("AceLocale-2.2"):new("ClubDead-WitJoin")
+WITJOIN:RegisterTranslations("enUS", function() return {
+    [1] = "I'm not dead, I'm just questing in spirit form",
+    [2] = "What do you think of my Kallipso impression?",
+    [3] = "Feigning death for real since 2004",
+} end)
+
+local WITLEAVE = AceLibrary("AceLocale-2.2"):new("ClubDead-WitLeave")
+WITLEAVE:RegisterTranslations("enUS", function() return {
+    [1] = "It is not yet my time...",
+    [2] = "I see a light!",
+    [3] = "Auntie Em?  Uncle Henry?",
 } end)
 
 -- EOF

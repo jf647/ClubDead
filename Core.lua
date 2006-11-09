@@ -22,8 +22,9 @@ ClubDead.defaults = {
     autojoin = true,
     autoleave = true,
     wit = true,
-    guildraidonly = true,
+    guildraidonly = false,
     autochannel = nil,
+    chatframe = "ChatFrame1",
 }
 ClubDead:RegisterDB("ClubDeadDB", "ClubDeadDBPC")
 ClubDead:RegisterDefaults("profile", ClubDead.defaults)
@@ -57,6 +58,15 @@ ClubDead.consoleOptions = {
                     ClubDead.db.profile.autochannel = false
                 end
                 ClubDead.db.profile.channel = v
+            end,
+        },
+        [L["chatframe"]] = {
+            name = L["Set chatframe name"], type = "text",
+            desc = L["Set chatframe in which the channel will be made visible when it is joined"],
+            usage = "framename",
+            get = function() return ClubDead.db.profile.chatframe end,
+            set = function(v)
+                ClubDead.db.profile.chatframe = v
             end,
         },
         [L["autojoin"]] = {
@@ -104,7 +114,7 @@ ClubDead.consoleOptions = {
         },
         [L["guildraidonly"]] = {
             name = L["Guild raids only"], type = "toggle",
-            desc = L["Only enable when the raid leader is in your guild"],
+            desc = L["Addon takes no action unless the raid leader is in your guild"],
             get = function() return ClubDead.db.profile.guildraidonly end,
             set = function(v)
                 ClubDead.db.profile.guildraidonly = v
@@ -114,8 +124,25 @@ ClubDead.consoleOptions = {
 }
 ClubDead:RegisterChatCommand(L["AceConsole-Commands"], ClubDead.consoleOptions )
 
+function ClubDead:OnInitialize()
+
+    local count = 0
+    for _, _ in WITJOIN:GetIterator() do
+        count = count + 1
+    end
+    self.maxjoinwit = count
+    count = 0
+    for _, _ in WITLEAVE:GetIterator() do
+        count = count + 1
+    end
+    self.maxleavewit = count
+    self:Debug("maxjoinwit = %d, maxleavewit = %d", self.maxjoinwit, self.maxleavewit)
+
+end
+
 function ClubDead:OnEnable()
 
+    self:UnregisterAllEvents()
     self:RegisterEvent("CHAT_MSG_SYSTEM")
     self:RegisterEvent("ClubDead_CheckChannel")
     self:RegisterEvent("ClubDead_CheckActive")
@@ -153,13 +180,13 @@ end
 function ClubDead:ClubDead_UnRegisterEvents()
 
     if( self:IsEventRegistered("PLAYER_DEAD") ) then
-        self:UnRegisterEvent("PLAYER_DEAD")
+        self:UnregisterEvent("PLAYER_DEAD")
     end
     if( self:IsEventRegistered("PLAYER_ALIVE") ) then
-        self:UnRegisterEvent("PLAYER_ALIVE")
+        self:UnregisterEvent("PLAYER_ALIVE")
     end
     if( self:IsEventRegistered("PLAYER_UNGHOST") ) then
-        self:UnRegisterEvent("PLAYER_UNGHOST")
+        self:UnregisterEvent("PLAYER_UNGHOST")
     end
     
 end
@@ -175,6 +202,8 @@ function ClubDead:AceEvent_FullyInitialized()
     self.active = false
     self.inraid = false
     self.guildraid = false
+    self.lastjoinwitidx = nil
+    self.lastleavewitidx = nil
 
     if self:GetProfile() == "Default" then
         self:SetProfile("char")
@@ -189,8 +218,6 @@ function ClubDead:AceEvent_FullyInitialized()
 end
 
 function ClubDead:OnProfileEnable()
-
-    self:SetDebugging(1)
 
     if( ClubDead.db.profile.autochannel == nil ) then
         self:Debug("channel is nil - setting up")
@@ -232,8 +259,19 @@ function ClubDead:ClubDead_JoinedRaid()
     if( IsInGuild() ) then
         if( IsPartyLeader() ) then
             self.guildraid = true
-        elseif( GetGuildInfo("player") == GetGuildInfo(GetPartyMember(GetPartyleaderIndex())) ) then
-            self.guildraid = true
+        else
+            for i = 1, 40 do
+                local _, rank = GetRaidRosterInfo(i)
+                self:Debug("raid member " .. i .. " has rank " .. rank)
+                if( rank == 2 ) then
+                    local leaderguild = GetGuildInfo("raid"..i)
+                    self:Debug("raid leader guild is %s", leaderguild)
+                    if( GetGuildInfo("player") == leaderguild ) then
+                        self.guildraid = true
+                        break
+                    end
+                end
+            end
         end
     end
     self:TriggerEvent("ClubDead_CheckAlive")
@@ -305,36 +343,30 @@ function ClubDead:ClubDead_CheckChannel()
     local inchannel = GetChannelName(ClubDead.db.profile.channel) > 0
     
     if( inchannel ) then
+        self:Debug("inchannel")
         if( self.active ) then
             if( self.isalive ) then
                 if( ClubDead.db.profile.wit ) then
-                    self:Debug("emit witty remark about seeing a bright light to channel " .. ClubDead.db.profile.channel)
-                    self:ScheduleEvent("ClubDead_SendMessage", 5, "it is not yet my time...", ClubDead.db.profile.channel)
-                end
-                if( ClubDead.db.profile.autoleave ) then
-                    self:Debug("inchannel,alive,autoleave - leaving")
-                    self:ScheduleEvent("ClubDead_LeaveChannel", 10, ClubDead.db.profile.channel)
-                else
-                    self:Debug("inchannel,alive,noautoleave- not leaving")
+                    self:ScheduleEvent("leavemsg", "ClubDead_SendMessage", 5, WITLEAVE, self.maxleavewit, ClubDead.db.profile.channel, ClubDead.db.profile.autoleave)
                 end
             end
         else
             if( ClubDead.db.profile.autoleave ) then
                 self:Debug("inchannel,notactive,autoleave - leaving")
-                self:ScheduleEvent("ClubDead_LeaveChannel", 5, ClubDead.db.profile.channel)
+                self:ScheduleEvent("leave", "ClubDead_LeaveChannel", 10, ClubDead.db.profile.channel)
             else
                 self:Debug("inchannel,notactive,noautoleave - not leaving")
             end
         end
     else
+        self:Debug("not inchannel")
         if( self.active ) then
             if( not self.isalive ) then
                 if( ClubDead.db.profile.autojoin ) then
                     self:Debug("notinchannel,dead,autojoin - joining")
-                    self:ScheduleEvent("ClubDead_JoinChannel", 5, ClubDead.db.profile.channel);
+                    self:ScheduleEvent("join", "ClubDead_JoinChannel", 5, ClubDead.db.profile.channel);
                     if( ClubDead.db.profile.wit ) then
-                        self:Debug("emit witty remark about a parrot to channel " .. ClubDead.db.profile.channel)
-                        self:ScheduleEvent("ClubDead_SendMessage", 10, "I'm not dead, I'm just questing in spirit form", ClubDead.db.profile.channel);
+                        self:ScheduleEvent("joinmsg", "ClubDead_SendMessage", 10, WITJOIN, self.maxjoinwit, ClubDead.db.profile.channel);
                     end
                 else
                     self:Debug("notinchannel,dead,noautojoin - not joining")
@@ -345,18 +377,42 @@ function ClubDead:ClubDead_CheckChannel()
 
 end
 
-function ClubDead:ClubDead_SendMessage(msg, channel)
+function ClubDead:ClubDead_SendMessage(tbl, size, channel, autoleave)
 
     local channelid = GetChannelName(channel)
     if( channelid > 0 ) then
+        local tempnum = random(1, size);
+        self:Debug("tempnum = " .. tempnum)
+        while tempnum == self.lastwitjoinidx and size >= 2 do
+            tempnum = random(1, size);
+            self:Debug("tempnum = " .. tempnum)       
+        end
+        self.lastwitjoinid = tempnum;
+        local msg = tbl[tempnum]
+        self:Debug("message: " .. msg)
         SendChatMessage(msg, "CHANNEL", nil, channelid);
+        if( autoleave ~= nil ) then
+            if( autoleave ) then
+                self:Debug("scheduling autoleave")
+                self:ScheduleEvent("leave", "ClubDead_LeaveChannel", 5, channel)
+            else
+                self:Debug("not scheduling autoleave")
+            end
+        end
+    else
+        self:Debug("cannot send message - not in channel")
     end
-
 end
 
 function ClubDead:ClubDead_JoinChannel(channel)
 
     JoinChannelByName(channel)
+    local f = getglobal(ClubDead.db.profile.chatframe)
+    if( f ~= nil ) then
+        ChatFrame_AddChannel(f, channel)
+    else
+        self:Debug("can't get object for " .. ClubDead.db.profile.chatframe)
+    end
 
 end
 
