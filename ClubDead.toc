@@ -20,7 +20,6 @@ Libs\AceDB-2.0\AceDB-2.0.lua
 Libs\AceDebug-2.0\AceDebug-2.0.lua
 
 Libs\Crayon-2.0\Crayon-2.0.lua
-Lubs\FuBarPlugin-2.0\FuBarPlugin-2.0.lua
 
 localization\ClubDead-enUS.lua
 
