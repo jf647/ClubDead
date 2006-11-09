@@ -43,15 +43,16 @@ L:RegisterTranslations("enUS", function() return {
 local WITJOIN = AceLibrary("AceLocale-2.2"):new("ClubDead-WitJoin")
 WITJOIN:RegisterTranslations("enUS", function() return {
     [1] = "I'm not dead, I'm just questing in spirit form",
-    [2] = "What do you think of my Kallipso impression?",
-    [3] = "Feigning death for real since 2004",
+    [2] = "I'm feigning death for real",
+    [3] = "My regret is not that I have but one life to give for my raid... but that I'm giving it now",
+    [4] = "Well, it is more mana-efficient to rez me than heal me",
 } end)
 
 local WITLEAVE = AceLibrary("AceLocale-2.2"):new("ClubDead-WitLeave")
 WITLEAVE:RegisterTranslations("enUS", function() return {
     [1] = "It is not yet my time...",
     [2] = "I see a light!",
-    [3] = "Auntie Em?  Uncle Henry?",
+    [3] = "I'll be back",
 } end)
 
 -- EOF
