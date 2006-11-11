@@ -38,6 +38,15 @@ L:RegisterTranslations("enUS", function() return {
     ["chatframe"] = true,
     ["Set chatframe name"] = true,
     ["Set chatframe in which the channel will be made visible when it is joined"] = true,
+    ["active"] = true,
+    ["inactive"] = true,
+    ["yes"] = true,
+    ["no"] = true,
+    ["N/A"] = true,
+    ["alive"] = true,
+    ["inraid"] = true,
+    ["guildraid"] = true,
+    ["inchannel"] = true,
 } end)
 
 local WITJOIN = AceLibrary("AceLocale-2.2"):new("ClubDead-WitJoin")

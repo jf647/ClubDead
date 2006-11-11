@@ -3,17 +3,19 @@
 --
 
 -- get global library instances
-local L  = AceLibrary("AceLocale-2.2"):new("ClubDead")
+local C = AceLibrary("Crayon-2.0")
+local T = AceLibrary("Tablet-2.0")
+local L = AceLibrary("AceLocale-2.2"):new("ClubDead")
 local WITJOIN = AceLibrary("AceLocale-2.2"):new("ClubDead-WitJoin")
 local WITLEAVE = AceLibrary("AceLocale-2.2"):new("ClubDead-WitLeave")
-local C  = AceLibrary("Crayon-2.0")
 
 -- setup addon
 ClubDead = AceLibrary("AceAddon-2.0"):new(
     "AceEvent-2.0",
     "AceDebug-2.0",
     "AceConsole-2.0",
-    "AceDB-2.0"
+    "AceDB-2.0",
+    "FuBarPlugin-2.0"
 )
 
 -- setup profile
@@ -41,13 +43,6 @@ ClubDead.consoleOptions = {
                 ClubDead:Report()
             end,
         },
-        ["check"] = {
-            name = "check", type = "execute",
-            desc = "check status",
-            func = function()
-                ClubDead:ClubDead_CheckAlive()
-            end,
-        },
         [L["channel"]] = {
             name = L["Set channel"], type = "text",
             desc = L["Set channel to join on death (turns autochannel off)"],
@@ -58,6 +53,7 @@ ClubDead.consoleOptions = {
                     ClubDead.db.profile.autochannel = false
                 end
                 ClubDead.db.profile.channel = v
+                ClubDead:Update()
             end,
         },
         [L["chatframe"]] = {
@@ -110,6 +106,7 @@ ClubDead.consoleOptions = {
                 else
                     ClubDead.db.profile.autochannel = false
                 end
+                ClubDead:Update()
             end,
         },
         [L["guildraidonly"]] = {
@@ -123,6 +120,11 @@ ClubDead.consoleOptions = {
     },
 }
 ClubDead:RegisterChatCommand(L["AceConsole-Commands"], ClubDead.consoleOptions )
+
+-- setup FuBar
+ClubDead.cannotDetachTooltip = true
+ClubDead.OnMenuRequest = ClubDead.consoleOptions
+ClubDead.hasIcon = "Interface\\Icons\\INV_Misc_Idol_03"
 
 function ClubDead:OnInitialize()
 
@@ -215,6 +217,8 @@ function ClubDead:AceEvent_FullyInitialized()
 		self:TriggerEvent("ClubDead_LeftRaid")
 	end
 
+    self:Update()
+
 end
 
 function ClubDead:OnProfileEnable()
@@ -238,6 +242,8 @@ function ClubDead:OnProfileEnable()
             self:Debug("set channel to " .. ClubDead.db.profile.channel)
         end
     end
+    
+    self:Update()
 
 end
 
@@ -275,6 +281,8 @@ function ClubDead:ClubDead_JoinedRaid()
         end
     end
     self:TriggerEvent("ClubDead_CheckAlive")
+    
+    self:Update()
 
 end
 
@@ -283,6 +291,8 @@ function ClubDead:ClubDead_LeftRaid()
     self.inraid = false
     self.guildraid = false
     self:TriggerEvent("ClubDead_CheckAlive")
+    
+    self:Update()
 
 end
 
@@ -296,7 +306,7 @@ function ClubDead:ClubDead_CheckAlive()
         self.isalive = true
     end
     self:TriggerEvent("ClubDead_CheckActive")
-
+    
 end
 
 function ClubDead:ClubDead_CheckActive()
@@ -331,6 +341,8 @@ function ClubDead:ClubDead_CheckActive()
     end
     
     self:TriggerEvent("ClubDead_CheckChannel")
+    
+    self:Update()
 
 end
 
@@ -374,6 +386,8 @@ function ClubDead:ClubDead_CheckChannel()
             end
         end
     end
+    
+    self:Update()
 
 end
 
@@ -402,6 +416,7 @@ function ClubDead:ClubDead_SendMessage(tbl, size, channel, autoleave)
     else
         self:Debug("cannot send message - not in channel")
     end
+
 end
 
 function ClubDead:ClubDead_JoinChannel(channel)
@@ -447,6 +462,69 @@ function ClubDead:Report()
     end
     s = s .. "channel:" .. ClubDead.db.profile.channel
     self:Debug(s)
+
+end
+
+function ClubDead:OnTextUpdate()
+
+    if( self.active ) then
+        self:SetText(C:Green(L["active"]))
+    else
+        self:SetText(C:Red(L["inactive"]))
+    end
+
+end
+
+function ClubDead:OnTooltipUpdate()
+
+    local cat = T:AddCategory(
+        'columns', 2,
+        'child_textR', 0,
+        'child_textG', 1,
+        'child_textB', 0,
+        'child_text2R', 1,
+        'child_text2G', 1,
+        'child_text2B', 1
+    )
+    local val
+    if( self.isalive ) then
+        val = L["yes"]
+    else
+        val = L["no"]
+    end
+    cat:AddLine( 'text', L["alive"], 'text2', val )
+    if( self.active ) then
+        val = L["yes"]
+    else
+        val = L["no"]
+    end
+    cat:AddLine( 'text', L["active"], 'text2', val )
+    if( self.inraid ) then
+        val = L["yes"]
+    else
+        val = L["no"]
+    end
+    cat:AddLine( 'text', L["inraid"], 'text2', val )
+    if( self.guildraid ) then
+        val = L["yes"]
+    else
+        val = L["no"]
+    end
+    cat:AddLine( 'text', L["guildraid"], 'text2', val )
+    if( ClubDead.db.profile.channel ~= nil ) then
+        val = ClubDead.db.profile.channel
+    else
+        val = L["N/A"]
+    end
+    cat:AddLine( 'text', L["channel"], 'text2', val )
+    if( ClubDead.db.profile.channel ~= nil ) then
+        if( GetChannelName(ClubDead.db.profile.channel) > 0 ) then
+            val = L["yes"] 
+        else
+            val = L["no"]
+        end
+        cat:AddLine( 'text', L["inchannel"], 'text2', val )
+    end
 
 end
 
