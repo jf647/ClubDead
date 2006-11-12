@@ -55,6 +55,15 @@ WITJOIN:RegisterTranslations("enUS", function() return {
     [2] = "I'm feigning death for real",
     [3] = "My regret is not that I have but one life to give for my raid... but that I'm giving it now",
     [4] = "Well, it is more mana-efficient to rez me than heal me",
+    [5] = "Granddaddy always said laughter was the best medicine. I guess it wasn't strong enough to keep me alive",
+    [6] = "It's just a flesh wound",
+    [7] = "So, brave knights, if you do doubt your courage or your strength, come no further, for death awaits you all with nasty, big, pointy teeth",
+    [8] = "Bring out yer dead",
+    [9] = "Look, that rabbit's got a vicious streak a mile wide! It's a killer!",
+    [10] = "And as the Black Beast lurched forward, escape for Arthur and his knights seemed hopeless, when suddenly, the animator suffered a fatal heart attack!",
+    [11] = "Well, we'll not risk another frontal assault. That rabbit's dynamite.",
+    [12] = "...death defying feats are clearly not my strong point",
+    [13] = "Help! I've fallen and I can't get up!",
 } end)
 
 local WITLEAVE = AceLibrary("AceLocale-2.2"):new("ClubDead-WitLeave")
@@ -62,6 +71,10 @@ WITLEAVE:RegisterTranslations("enUS", function() return {
     [1] = "It is not yet my time...",
     [2] = "I see a light!",
     [3] = "I'll be back",
+    [4] = "It just so happens that I'm only MOSTLY dead. There's a big difference between mostly dead and all dead. Mostly dead is slightly alive",
+    [5] = "Oh! Had enough, eh? Come back and take what's coming to you, you yellow bastards! Come back here and take what's coming to you! I'll bite your legs off!",
+    [6] = "Woot! Another chance to noob it up",
+    [7] = "Nooooo... I was about to hook up a date with the spirit healer",
 } end)
 
 -- EOF
