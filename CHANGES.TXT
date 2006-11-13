@@ -1,0 +1,7 @@
+Changelog for Club Dead
+=======================
+
+1.0 - initial release
+
+1.1 - added FuBar plugin, expanded phrases
+
