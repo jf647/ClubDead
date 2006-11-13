@@ -70,15 +70,10 @@ to /clubdead report) and set the same options as the slash commands
 TODO
 ----
 
-    * expand the list of witty sayings considerably. Right now they are just
-    three statements for join and leave, and the quality is ... not quit
-    there
+    * continue to expand the list of witty sayings.  Now up to 14 and 7
 
     * improve "guild raid" detection. Sometimes asking for the raid leader's
     guild name returns nil for some reason
-
-    * Use SupplyAndDemand (a load on demand stub) to only load Club Dead
-    when you join a raid
 
     * get localizations (ClubDead is an Ace2 addon using AceLocale, so if
     you are familiar with the process for localizing such addons, just send
