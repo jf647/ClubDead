@@ -64,7 +64,8 @@ WITJOIN:RegisterTranslations("enUS", function() return {
     [11] = "Well, we'll not risk another frontal assault. That rabbit's dynamite.",
     [12] = "...death defying feats are clearly not my strong point",
     [13] = "Help! I've fallen and I can't get up!",
-    [14] = "WTH?  Where's my FD button?  Oh right, not on my hunter...",
+    [14] = "WTH?  Where's my FD button?  Oh right, not playing my hunter...",
+    [15] = "phear teh wisp!",
 } end)
 
 local WITLEAVE = AceLibrary("AceLocale-2.2"):new("ClubDead-WitLeave")
