@@ -1,7 +1,7 @@
-## Interface: 11200
+## Interface: 20003
 ## Title: Club Dead |cff7fff7f -Ace2-|r
 ## Notes: Joins a configurable chat channel when you die
-## Version: 1.1.$Revision$
+## Version: 1.2.$Revision$
 ## Author: Kynan (Eitrigg US)
 ## DefaultState: Enabled
 ## OptionalDeps: Ace2, CrayonLib, FuBar, TabletLib
