@@ -1,0 +1,12 @@
+--
+-- $Date$ $Revision$
+--
+
+WoW 3.3 Compatibility
+---------------------
+
+- update externals
+- move localizations to proper subdir
+- rename Libs to libs
+- add more wit?
+- update TOC
